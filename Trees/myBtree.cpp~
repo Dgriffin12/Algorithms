@@ -1,0 +1,223 @@
+#include "myBtree.h"
+
+//constructor
+MyTree::MyTree() : root(NULL), levels(0)
+{
+
+}
+
+//call internal destroy tree
+MyTree::~MyTree()
+{
+	destroy_tree(root);
+}
+
+//destroys the tree recursively
+void MyTree::destroy_tree(Node* to_destroy)
+{
+	if(to_destroy != NULL)
+	{
+		if(to_destroy->left)
+			destroy_tree(to_destroy->left);
+		if(to_destroy->right)
+			destroy_tree(to_destroy->right);
+
+		delete to_destroy;
+	}
+}
+
+//wrapper to call internal insert function
+void MyTree::add_node(int i)
+{
+	add_node_internal(i, root, 0);
+}
+
+//insert function (private of MyTree)
+void MyTree::add_node_internal(int i, Node* cur_node, int depth)
+{
+	if(!root)
+	{
+		root = new Node(i);
+	}else if(!cur_node)
+	{
+		cur_node = new Node(i);
+	}else if(cur_node)
+	{
+		depth++;
+		if(cur_node->left && i < cur_node->data)
+		{
+			add_node_internal(i, cur_node->left,depth);
+		}else if(cur_node->right && i > cur_node->data)
+		{
+			add_node_internal(i, cur_node->right, depth);
+		}else if(i < cur_node->data && !cur_node->left)
+		{
+			cur_node->left = new Node(i);
+			depth++;
+		}else if(i >= cur_node->data && !cur_node->right)
+		{
+			cur_node->right = new Node(i);
+			depth++;
+		}
+		if(levels < depth)
+			levels = depth;
+	}
+}
+
+MyTree::Node* MyTree::search(int i, Node* start)
+{
+	if(!start)
+	{
+		return NULL;
+	}else
+	{
+		if(start->data == i)
+		{
+			return start;
+		}else if(start->data > i)
+		{
+			return search(i, start->left);
+		}else if(start->data < i)
+		{
+			return search(i, start->right);
+		}		
+	}
+}
+
+MyTree::Node* MyTree::search_for_deletion(int i, Node* start)
+{
+	if(!start)
+	{
+		return NULL;
+	}else
+	{
+		if(start->left && (start->left->data == i))
+		{
+			return start;
+		}else if(start->right && (start->right->data == i))
+		{
+			return start;
+		}else if(start->left && (start->data > i))
+		{
+			return search_for_deletion(i, start->left);
+		}else if(start->right && (start->data < i))
+		{
+			return search_for_deletion(i, start->right);
+		}
+	}
+	
+	return NULL; //precaution, should never reach here.
+}
+void MyTree::remove_node_pub(int i)
+{
+	remove_node(i, root);
+}
+void MyTree::remove_node(int i, Node* start)
+{
+	if(!start)//no tree.
+	{
+		return;
+	}else
+	{
+		if(start->left && start->left->data >= i)
+		{
+			remove_node(i, start->left);
+		}else if(start->right && start->right->data <= i)
+		{
+			remove_node(i, start->right);
+		}else
+		{
+			if(start->left && start->right)
+			{
+				//has two children.
+				Node* successor = find_min(start->right);
+				int successor_data = successor->data;
+				remove_node(successor->data, successor);
+				start->data = successor_data;
+			}else if(start->left)
+			{
+				//only left child.
+				Node* parent = search_for_deletion(i, root);
+				Node* to_delete = search(i, root);
+				if(parent && to_delete)
+				{
+					if(parent->left == to_delete)
+					{
+						parent->left = to_delete->left;
+					}else if(parent->right == to_delete)
+					{
+						parent->right = to_delete->left;
+					}
+				}
+			}else if(start->right)
+			{
+				//only right child.
+				Node* parent = search_for_deletion(i, root);
+				Node* to_delete = search(i, root);
+				if(parent && to_delete)
+				{
+					if(parent->left == to_delete)
+					{
+						parent->left = to_delete->right;
+					}else if(parent->right == to_delete)
+					{
+						parent->right = to_delete->right;
+					}
+				}
+			}else
+			{
+				//no children.
+				Node* parent = search_for_deletion(i, root);
+				Node* to_delete = search(i, root);
+				if(!parent)
+				{
+					root = NULL;
+				}else if(parent->left == start)
+				{
+					parent->left = NULL;
+				}else if(parent->right == start)
+				{
+					parent->right = NULL;
+				}
+				delete to_delete;
+			}
+		}
+	}
+}
+
+//finds the minimum node for deletion with two children(so we get a node with just 1 child.)
+MyTree::Node* MyTree::find_min(Node* current_node)
+{
+	while(current_node->left)
+	{
+		current_node = current_node->left;
+	}
+	return current_node;
+}
+
+//wrapper to call private print_tree on root.
+void MyTree::print_tree()
+{
+	print_tree_internal(root);
+}
+void MyTree:print_root()
+{
+	if(root)
+		cout << "root = " << root->data << endl;
+}
+//private recursive print tree function, prints values in order from least to greatest.
+void MyTree::print_tree_internal(Node* print)
+{
+	if(print)
+	{
+		print_tree_internal(print->left);
+		cout << print->data << endl;
+		print_tree_internal(print->right);
+			
+	}
+}
+
+void MyTree::print_levels()
+{
+	cout << "Levels: " << levels << endl;
+}
